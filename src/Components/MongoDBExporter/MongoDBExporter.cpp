@@ -242,12 +242,17 @@ void MongoDBExporter::write2DB()
 				}
 				CLOG(LNOTICE)<<"ft : "<< ft;
 				shared_ptr<PrimitiveFile::PrimitiveFile> file(new PrimitiveFile::PrimitiveFile(newFileName, ft, hostname));
+				// get size of file from disc
 				float size = get_file_size(fileNameTemp);
-				file->setSize(size);
-
-				if(file->getSize()<15)
+				//file->setSize(size);
+				CLOG(LNOTICE)<<"size: "<<size/(1024*1024);
+				if((size/(1024*1024))<15)
 				{
+					// set size of data
+					CLOG(LNOTICE)<<"writeToSink";
 					file->writeToSinkFromFile(fileNameTemp);
+					CLOG(LNOTICE)<<"SetSize";
+					file->setSize();
 				}
 				if(type == "Model")
 					modelPtr->addFile(file, type, false, fileNameTemp, in_mean_viewpoint_features_number);

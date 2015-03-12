@@ -773,6 +773,7 @@ void PrimitiveFile::readPointCloudFromDocument(bool saveToDiscFlag, string& path
 			memcpy(newBuffer, buffer, totalSize);
 			pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudXYZRGB (new pcl::PointCloud<pcl::PointXYZRGB>);
 			pcl::PointXYZRGB pt;
+			LOG(LNOTICE)<<"READ - PointsNumber: " << totalSize/(xyzrgbPointSize*sizeof(float));
 			for(int i=0; i<totalSize/(xyzrgbPointSize*sizeof(float)); i++)
 			{
 				pt.x=newBuffer[i*xyzrgbPointSize];
@@ -1119,7 +1120,7 @@ void PrimitiveFile::insertFileIntoDocument(OID& oid, string& name, string& type,
 			int fieldsNr = xyzrgbPointSize*cloudSize;
 			//int totalSize = fieldsNr*sizeof(float);
 			float buff[fieldsNr];
-
+			LOG(LNOTICE)<<"Save to document  - Point number: "<<cloudSize;
 			// copy all points to memory
 			for(int iter=0; iter<cloudSize; iter++)
 			{

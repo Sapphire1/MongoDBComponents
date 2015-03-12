@@ -231,7 +231,6 @@ void ModelReader::loadModels(fileTypes fT, string& ModelName, int meanViewpointF
 {
 	CLOG(LDEBUG) << "Create model";
 	SIFTObjectModel* model;
-	//TODO add more types!!!
 	//TODO test all types and returned vector of models!!!
 	if(fT==PCXyz)
 		CLOG(LERROR)<<"Unsupported type!!!";

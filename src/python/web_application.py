@@ -6,7 +6,7 @@ import bson
 import sys
 import httplib
 import yaml
-import os	
+import os
 import time
 from bottle import route, run, template, response,  get, post, request
 from pymongo import MongoClient
@@ -40,7 +40,7 @@ def showViewsInfo():
   #ObjectName = request.forms.get('ObjectName')
   DocumentType="View"
   print DocumentType
-  data = list(collection.find({"Type":DocumentType},{"_id":1,"Type":1,"FileTypes":1,"fileOIDs":1, "viewsSetNamesList":1, "viewSetList":1, "Name":1, "SceneName":1, "sensorType":1, "description":1}))
+  data = list(collection.find({"Type":DocumentType},{"_id":1,"Type":1,"FileTypes":1,"fileOIDs":1, "viewsSetNamesList":1, "viewSetList":1, "Name":1, "SceneName":1, "sensorType":1, "description":1, "date":1}))
   print data
   jsonList = json.dumps(data,default=json_util.default)
   jdata = json.loads(jsonList)
@@ -69,6 +69,7 @@ def showViewsInfo():
     <th>Read file</th>
     <th>Add file to view</th>
     <th>Remove Files</th>
+    <th>Remove View</th>
   </tr>'''
   
   #if DocumentType=="Model":  
@@ -95,8 +96,7 @@ def showViewsInfo():
   #if NodeName=="Model":
       #typeName="Name"
   
- 
-  date = "12-12-2014"
+  date = ""
   fileOIDs="[]"
   i=0
   scene=""
@@ -117,6 +117,9 @@ def showViewsInfo():
 		sensor=value
 	    if key=="_id":
 		_id=str(value)
+	    if key=="date":
+		date=value
+		print date
 	    if key=="SceneName":
 		scene=value
 		print scene
@@ -192,6 +195,7 @@ def showViewsInfo():
       print addString
       if(filesInView==True):
       	filesNumber = len(FileList[i])
+      print date
       table = table + addRowToView(i, name, sensor, filesNumber, date, scene, viewsSetNames, description, TypesList, addString)
       existTypesList = []
       addString=''
@@ -216,7 +220,12 @@ def drawAddButton(Name, DocumentType, SensorType, mode, addString):
 	  CREATE VIEW OR MODEL AND ADD FILE <br>
 	  Full path: <input name="path" type="text" /><br>
 	  Name: <input name="Name" type="text" /><br>
-	  DocumentType: <input name="DocumentType" type="text" /><br>
+	  DocumentType: <SELECT name="DocumentType">
+	      <OPTGROUP label="DocumentType">
+		<OPTION selected label="View" value="View">View</OPTION>
+		<OPTION label="Model" value="Model">Model</OPTION>
+	      </OPTGROUP>
+	  </SELECT>
 	  ViewsSet: <input name="ViewsSet" type="text" /><br>
 	  SensorType: <SELECT name="SensorType">
 	      <OPTGROUP label="ReqFiletype">
@@ -267,14 +276,23 @@ def drawRemoveButton(Name, DocumentType, SensorType, mode, i, TypesList):
       </form></p>
   '''
   else:
-	  return '''<p><form action='/static/objects/removefile/%s/%s/%s' method="post">
+	  return '''<p><form action='/static/objects/removefile/%s/%s/%s/%s' method="post">
 		Choose type of removed file: <SELECT name="ReqFiletype">
-		      <OPTGROUP label="ReqFiletype">'''%(Name, DocumentType, SensorType)+TypesList+'''
+		      <OPTGROUP label="ReqFiletype">'''%(Name, DocumentType, SensorType, 'null')+TypesList+'''
 		      </OPTGROUP>
 		  </SELECT>
 		  <input value="Remove File" type="submit" />
 	      </form></p>
 	  '''
+@get('/static/objects/views/removeViewOrModel/<Name>/<DocumentType>/<SensorType>')
+def drawRemoveButtonViewOrModel(Name, DocumentType, SensorType, i, TypesList):
+  print "DocumentType :" 
+  print DocumentType
+  return '''<p><form action='/static/objects/removeViewOrModel/%s/%s/%s' method="post">
+		  <input value="Remove Full Document" type="submit" />
+	      </form></p>
+	  '''%(Name, DocumentType, SensorType)
+            
       
 @route('/static/objects/models')
 def showModelsInfo():
@@ -285,7 +303,7 @@ def showModelsInfo():
   del viewsSetNames[:]
   DocumentType="Model"
   print DocumentType
-  data = list(collection.find({"Type":DocumentType},{"_id":1,"Type":1,"FileTypes":1,"fileOIDs":1, "viewsSetNamesList":1, "viewSetList":1, "Name":1, "description":1}))
+  data = list(collection.find({"Type":DocumentType},{"_id":1,"Type":1,"FileTypes":1,"fileOIDs":1, "viewsSetNamesList":1, "viewSetList":1, "Name":1, "description":1, "date":1}))
   print data
   jsonList = json.dumps(data,default=json_util.default)
   jdata = json.loads(jsonList)
@@ -312,13 +330,14 @@ def showModelsInfo():
     <th>Read file</th>
     <th>Add file to model</th>
     <th>Remove Files</th>
+    <th>Remove Model</th>
   </tr>'''
   
   
   if DocumentType=="Model":
       typeName="Name"
  
-  date = "12-12-2014"
+  date = ""
   fileOIDs="[]"
   i=0
   scene=""
@@ -335,6 +354,8 @@ def showModelsInfo():
 		name=value
 	    if key=="description":
 		description=value 
+	    if key=="date":
+		date=value
 	    if key=="_id":
 		_id=str(value)
 	    if key=="viewSetList":
@@ -442,6 +463,7 @@ def addRowToView(i, name, sensor, filesNumber, date, scene, viewsSet, descriptio
     
    #ImageDepth
   insertButton = drawAddButton(name,"View",sensor, "exist", addString)
+  removeButtonViewOrModel = drawRemoveButtonViewOrModel(name,"View", sensor, i, TypesList)
   removeButton = drawRemoveButton(name,"View",sensor, "exist", i, TypesList)
 
   return '''  <tr>
@@ -456,7 +478,8 @@ def addRowToView(i, name, sensor, filesNumber, date, scene, viewsSet, descriptio
     <td>%s</td>	
     <td>%s</td>	
     <td>%s</td>	
-    </tr>    '''%(str(i), name, sensor, filesNumber, date, scene, viewsSet, description, getButton, insertButton, removeButton)
+    <td>%s</td>
+    </tr>    '''%(str(i), name, sensor, filesNumber, date, scene, viewsSet, description, getButton, insertButton, removeButton, removeButtonViewOrModel)
 
 def addRowToModel(i, name, filesNumber, date, viewsSet, description, TypesList, addString):
   print "addRow"
@@ -476,8 +499,8 @@ def addRowToModel(i, name, filesNumber, date, viewsSet, description, TypesList, 
     
    #ImageDepth
   insertButton = drawAddButton(name,"Model",'sensor', "exist", addString)
+  removeButtonViewOrModel = drawRemoveButtonViewOrModel(name,"Model", 'sensor', i, TypesList)
   removeButton = drawRemoveButton(name,"Model",'sensor', "exist", i, TypesList)
-
   return '''  <tr>
     <td>%s</td>
     <td>%s</td>
@@ -488,7 +511,8 @@ def addRowToModel(i, name, filesNumber, date, viewsSet, description, TypesList, 
     <td>%s</td>
     <td>%s</td>
     <td>%s</td>	
-    </tr>    '''%(str(i), name, filesNumber, date, viewsSet, description, getButton, insertButton, removeButton)
+    <td>%s</td>
+    </tr>    '''%(str(i), name, filesNumber, date, viewsSet, description, getButton, insertButton, removeButton, removeButtonViewOrModel)
     
 @route('/static/img/gridfs/getimage/<_id>/<contentType>/<extension>')
 def get_img(_id,contentType,extension):
@@ -598,9 +622,10 @@ def add_file_create():
   return '''File inserted successfully'''
 
 
-@post('/static/objects/removefile/<Name>/<DocumentType>/<sensorType>')
-def remove_file(Name,DocumentType,sensorType):
-  fileType = request.forms.get('ReqFiletype')
+@post('/static/objects/removefile/<Name>/<DocumentType>/<sensorType>/<fileType>')
+def remove_file(Name,DocumentType,sensorType,fileType):
+  if fileType=='null':
+    fileType = request.forms.get('ReqFiletype')
   sensorType = request.forms.get('SensorType')
   print "DocumentType: "
   print DocumentType
@@ -618,6 +643,7 @@ def remove_file(Name,DocumentType,sensorType):
     document = collection.find_one({"Type" : "File", "fileType" : fileType, "ModelName" : Name},{"_id":1,"fileType":1,"Type":1, "Name":1})
   print document
   oid  = document["_id"]
+  
   if DocumentType=="View":
     collection.update({"Type": "View", "Name" : Name}, {"$pull" :{"FileTypes" :{"Type":fileType}}});
     collection.update({"Type": "View", "Name" : Name}, {"$pull" :{"fileOIDs" :{"fileOID":str(oid)}}});
@@ -625,8 +651,62 @@ def remove_file(Name,DocumentType,sensorType):
     collection.update({"Type": "Model", "Name" : Name}, {"$pull" :{"FileTypes" :{"Type":fileType}}});
     collection.update({"Type": "Model", "Name" : Name}, {"$pull" :{"fileOIDs" :{"fileOID":str(oid)}}});
   #remove document
+  
   collection.remove(oid)
   return '''File removed successfully'''
+
+@post('/static/objects/removeViewOrModel/<Name>/<DocumentType>/<SensorType>')
+def remove_viewOrModel(Name,DocumentType,SensorType):
+  print "DocumentType: "
+  print DocumentType
+  print "Name: "
+  print Name
+  
+  print "SensorType: "
+  print SensorType
+
+  dbname = 'containers'
+  db = connection[dbname]
+  document = ''
+  if DocumentType=="View":
+    document = collection.find_one({"Type" : DocumentType, "Name" : Name},{"_id":1,"Type":1, "Name":1, "FileTypes":1, "SensorType":1, "SceneName":1, "viewsSetNamesList":1})
+  if DocumentType=="Model":
+    document = collection.find_one({"Type" : DocumentType, "Name" : Name},{"_id":1,"Type":1, "Name":1, "FileTypes":1, "SensorType":1, "viewsSetNamesList":1})
+  print document
+  oid  = document["_id"]
+  
+  print oid
+  FileTypes = document["FileTypes"]
+  if DocumentType=="View":
+    SceneName = document["SceneName"]
+  viewsSetNamesList = document["viewsSetNamesList"]
+
+  jsonList = json.dumps(FileTypes,default=json_util.default)
+  jdata = json.loads(jsonList)
+  print jdata
+  
+  for d in jdata:	# for all views
+      for key, value in d.iteritems():	# for all keys
+	    print 'remove file type: ' + value
+	    remove_file(Name,DocumentType,SensorType, value)
+	    
+  
+  # update scenes, views, model/lists
+  if DocumentType=="View":
+    collection.update({"Type": "Scene", "Name" : SceneName}, {"$pull" :{"ViewsList" :{"viewOID":str(oid)}}});
+    jsonList = json.dumps(viewsSetNamesList,default=json_util.default)
+    jdata = json.loads(jsonList)
+    for d in jdata:	# for all views
+	for key, value in d.iteritems():	# for all keys
+	    print 'usuwam z listy: ' + value
+	    collection.update({"Type": "ViewsSet", "viewsSetNamesList" : value}, {"$pull" :{"ViewsList" :{"viewOID":str(oid)}}});
+  #if DocumentType=="Model":
+    #collection.update({"Type": "Scene", "Name" : SceneName}, {"$pull" :{"ModelList" :{"modelOID":str(oid)}}});
+    #collection.update({"Type": "ViewsSet", "Name" : ViewsSetName}, {"$pull" :{"ModelList" :{"modelOID":str(oid)}}});
+  #remove document
+  
+  collection.remove(oid)
+  return '''View or Model removed successfully'''
 
 def create_viewSetdocument(ViewsSet):
   print "create ViewsSet document"  
@@ -708,10 +788,11 @@ def add_file(Name,DocumentType,sensorType):
 
 def create_document(DocumentType, Name, sensorType, scene):
   print "create document"  
+  date = time.strftime("%Y/%m/%d") + ':' + time.strftime("%X")
   if DocumentType=="View":
-    post = { "Type" : DocumentType, "Name" : Name, "description" : "", "sensorType" : sensorType, "SceneName" : scene }
+    post = { "Type" : DocumentType, "Name" : Name, "description" : "", "sensorType" : sensorType, "SceneName" : scene, "date" : date}
   if DocumentType=="Model":
-    post = { "Type" : DocumentType, "Name" : Name, "description" : ""}
+    post = { "Type" : DocumentType, "Name" : Name, "description" : "", "date" : date}
   post_id = collection.insert(post)
   return post_id
  
